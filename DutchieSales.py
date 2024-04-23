@@ -5,15 +5,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-
 from selenium.common.exceptions import TimeoutException
 from datetime import datetime, timedelta
 import time  # Import the time module
 from login import username, password
-
-from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException, TimeoutException, StaleElementReferenceException
-
-from selenium.webdriver.support.ui import Select
 
 
 def launchBrowser():
@@ -23,55 +18,13 @@ def launchBrowser():
    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
    driver.get("https://live.backoffice.dutchie.com/reports/closing-report/registers")
    return driver
-
 def login():
     wait = WebDriverWait(driver, 10)
     wait.until(EC.element_to_be_clickable((By.ID, "input-input_login-email"))).send_keys(username)
     wait.until(EC.element_to_be_clickable((By.ID, "input-input_login-password"))).send_keys(password)
     login_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".MuiButton-root.MuiButton-containedPrimary")))
     login_button.click()
-def click_dropdown(): #This is to open store dropdown
-        wait = WebDriverWait(driver, 5)
-        dropdown_xpath = "/html/body/div[1]/div/div[1]/div[2]/div[2]/div"
-        WebDriverWait(driver, 10).until(
-        EC.invisibility_of_element_located((By.CSS_SELECTOR, "div.sc-ppyJt.jlHGrm"))  # adjust to actual overlay selector
-        )
-        dropdown = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpath)))
-        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", dropdown)
-        dropdown.click()
-
-def store():
-    wait = WebDriverWait(driver, 10)
-
-    # Function to click the dropdown and select an item by its visible text
-    def select_dropdown_item(item_text):
-        try:
-            # Click the dropdown to reveal the options
-            click_dropdown()
-
-            # Wait for the options to be visible and then click the desired item
-            xpath = f"//li[contains(text(), '{item_text}')]"
-            item = wait.until(EC.visibility_of_element_located((By.XPATH, xpath)))
-            item.click()
-            return True
-        except (TimeoutException, NoSuchElementException) as e:
-            print(f"Error while trying to select '{item_text}' from the dropdown: {e}")
-            
-            return False
-
-    # Iterate through desired dropdown options and select each one
-    for item_text in ["Buzz Cannabis - Mission Valley", "Buzz Cannabis-La Mesa"]:
-        if not select_dropdown_item(item_text):
-            print(item_text)
-            break  # Stop if unable to click a dropdown item
-        print(item_text)
-        process()
-        time.sleep(4)
-
-    print("Completed processing all items.")
-
 def clickDateButton(driver, day_of_month):
-    
     # Click on the input field first
     input_field_id = "input-input_"  # Double-check this ID
     input_field = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, input_field_id)))
@@ -128,23 +81,17 @@ def extract_monetary_values(driver):
         except ValueError:
             print(f"Could not convert '{value_text}' to float.")
     return monetary_values
-
-def process():
-    click_date_input_field(driver)
-    day_of_month = get_yesterday_day_of_month()
-    click_yesterday_date_in_calendar(driver, day_of_month)
-    gross = extract_monetary_values(driver)
-    yesterday_formatted = (datetime.now() - timedelta(days=1)).strftime('%m/%d')
-    if len(gross) >= 2:
-        print(f"{yesterday_formatted} Sales was ${gross[0] + gross[1]}")
-        print(gross[0], " ", gross[1])
-        print(float((-1*gross[1])/gross[0]))
-    else:
-        print("Not enough data to calculate the sum of sales.")
-    
-
-
 driver = launchBrowser()
 login()
-store()
-#driver.quit()
+click_date_input_field(driver)
+day_of_month = get_yesterday_day_of_month()
+click_yesterday_date_in_calendar(driver, day_of_month)
+gross = extract_monetary_values(driver)
+yesterday_formatted = (datetime.now() - timedelta(days=1)).strftime('%m/%d')
+if len(gross) >= 2:
+    print(f"{yesterday_formatted} Sales was ${gross[0] + gross[1]}")
+    print(gross[0], " ", gross[1])
+    print(float((-1*gross[1])/gross[0]))
+else:
+    print("Not enough data to calculate the sum of sales.")
+driver.quit()
